@@ -22,12 +22,15 @@ mongo_collection = client.admin["movies"]
 def get_watch_history(user_id):
     with GraphDatabase.driver(uri, auth=(username, password)) as driver:
         with driver.session() as session:
-            result = session.run("MATCH (u:User {user_id: $user_id})-[:WATCHED]->(m:Video) RETURN m.video_id, m.url", user_id=user_id)
-            return [{'video_id': record["m.video_id"], 'url': record["m.url"]} for record in result]
+            result = session.run("MATCH (u:User {user_id: $user_id})-[:WATCHED]->(m:Video) RETURN DISTINCT m.video_id", user_id=user_id)
+            return [record["m.video_id"] for record in result]
 
-def get_video_tags(video_id):
+def get_video_info(video_id):
     video_document = mongo_collection.find_one({"_id": ObjectId(video_id)})
-    return video_document.get("tags", []) if video_document else []
+    if video_document:
+        return {"tags": video_document.get("tags", []), "url": video_document.get("url")}
+    else:
+        return {"tags": [], "url": None}
 
 @app.route('/recommendations/<string:user_id>', methods=['GET'])
 def get_recommendations(user_id):
@@ -35,12 +38,13 @@ def get_recommendations(user_id):
         watch_history = get_watch_history(user_id)
         recommendations_set = set()
 
-        for watched_video in watch_history:
-            tags = get_video_tags(watched_video['video_id'])
-            similar_films = mongo_collection.find({"tags": {"$in": tags}, "_id": {"$nin": [entry['video_id'] for entry in watch_history]}})
-            recommendations_set.update(str(film["_id"]) for film in similar_films if str(film["_id"]) not in [entry['video_id'] for entry in watch_history])
+        for watched_video_id in watch_history:
+            video_info = get_video_info(watched_video_id)
+            tags = video_info["tags"]
+            similar_films = mongo_collection.find({"tags": {"$in": tags}, "_id": {"$nin": watch_history}})
+            recommendations_set.update(str(film["_id"]) for film in similar_films if str(film["_id"]) not in watch_history)
 
-        recommendations = [{'video_id': video_id, 'tags': get_video_tags(video_id), 'url': next((entry['url'] for entry in watch_history if entry['video_id'] == video_id), '')} for video_id in recommendations_set]
+        recommendations = [{'video_id': video_id, 'tags': get_video_info(video_id)["tags"], 'url': get_video_info(video_id)["url"]} for video_id in recommendations_set]
 
         return jsonify({'user_id': user_id, 'recommendations': recommendations})
     except Exception as e:
