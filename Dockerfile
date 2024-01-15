@@ -16,5 +16,5 @@ EXPOSE 9092
 ENV NAME World
 
 
-CMD ["python", "app.py"]
+CMD ["python", "recommendationApp.py"]
 
