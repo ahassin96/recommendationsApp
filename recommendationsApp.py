@@ -20,7 +20,7 @@ client = MongoClient(MONGO_URI)
 mongo_collection = client.admin["movies"]
 
 def get_watch_history(user_id):
-    with GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD)) as driver:
+    with GraphDatabase.driver(uri, auth=(username, password)) as driver:
         with driver.session() as session:
             result = session.run("MATCH (u:User {user_id: $user_id})-[:WATCHED]->(m:Video) RETURN m.video_id", user_id=user_id)
             return [record["m.video_id"] for record in result]
