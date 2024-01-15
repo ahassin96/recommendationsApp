@@ -11,9 +11,9 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
-uri = os.getenv("NEO4J_URI", "bolt://ec2-54-88-88-30.compute-1.amazonaws.com:7687")
-username = os.getenv("NEO4J_USERNAME", "default_username")
-password = os.getenv("NEO4J_PASSWORD", "default_password")
+uri = os.getenv("uri", "bolt://ec2-54-88-88-30.compute-1.amazonaws.com:7687")
+username = os.getenv("username", "default_username")
+password = os.getenv("password", "default_password")
 
 MONGO_URI = os.environ.get("MONGO_URI", "mongodb://ec2-54-221-90-30.compute-1.amazonaws.com:27017")
 client = MongoClient(MONGO_URI)
